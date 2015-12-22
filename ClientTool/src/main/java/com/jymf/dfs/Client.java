@@ -22,9 +22,9 @@ import java.util.Properties;
  */
 public class Client {
 
-    private static String URL = "218.245.0.113:5555";           //服务器URL
-    private static int sendTimeout = 2;                         //传输数据链接超时时间,从配置文件中读取
-    private static int recvTimeout = 2;                         //接收数据链接超时时间,从配置文件中读取
+    private static String URL = null;           //服务器URL
+    private static int sendTimeout = 0;                         //传输数据链接超时时间,从配置文件中读取
+    private static int recvTimeout = 0;                         //接收数据链接超时时间,从配置文件中读取
 
     private ZMQ.Context context = null;
     private ZMQ.Socket socket = null;
@@ -35,14 +35,19 @@ public class Client {
     static{
         try {
             Properties properties = new Properties();
-            InputStream inputStream = ClassLoader.getSystemResourceAsStream("/client.properties");
+            InputStream inputStream = Client.class.getResourceAsStream("/client.properties");
             properties.load(inputStream);
             URL = properties.getProperty("server");
-            sendTimeout = Integer.parseInt(properties.getProperty("send_timeout"));
-            recvTimeout = Integer.parseInt(properties.getProperty("recv_timeout"));
+            if (URL == null){
+                throw new Exception("URL不存在");
+            }
+            sendTimeout = Integer.parseInt(properties.getProperty("send_timeout","3000"));
+            recvTimeout = Integer.parseInt(properties.getProperty("recv_timeout","3000"));
         } catch (IOException e) {
             System.out.println("配置文件加载失败");
             e.printStackTrace();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
         }
     }
 
@@ -108,7 +113,7 @@ public class Client {
         try {
             int jsonSize = ByteArrayTool.bytesToShort(recv,4);
             result[0]  = new String(recv,6,jsonSize,"utf-8");
-            DownloadDownJson downloadDownJson= (DownloadDownJson)JsonTool.toObject(result[0],DownloadDownJson.class);
+            DownloadDownJson downloadDownJson= JsonTool.toObject(result[0],DownloadDownJson.class);
             int bodyLength = downloadDownJson.getBodyLength();
             result[1] = new String(recv,6+jsonSize,bodyLength,"utf-8");
             return result;
@@ -121,12 +126,12 @@ public class Client {
     /**
      * 用于客户端和服务器建立连接
      */
-    public void connect(){
+    public void connect() {
         context = ZMQ.context(1);
         socket = context.socket(ZMQ.REQ);
         socket.setSendTimeOut(sendTimeout);
         socket.setReceiveTimeOut(recvTimeout);
-        socket.connect(URL);
+        socket.connect("tcp://"+URL);
     }
 
     /**
