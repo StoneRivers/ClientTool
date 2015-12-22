@@ -3,6 +3,7 @@ package com.jymf.dfs;
 import com.jymf.dfs.bean.DownloadDownJson;
 import com.jymf.dfs.bean.DownloadUpJson;
 import com.jymf.dfs.bean.UploadUpJson;
+import com.jymf.dfs.exception.MyException;
 import com.jymf.dfs.tool.ByteArrayTool;
 import com.jymf.dfs.tool.JsonTool;
 import com.jymf.dfs.tool.PacketTool;
@@ -39,10 +40,10 @@ public class Client {
             properties.load(inputStream);
             URL = properties.getProperty("server");
             if (URL == null){
-                throw new Exception("URL不存在");
+                throw new MyException("URL不存在");
             }
-            sendTimeout = Integer.parseInt(properties.getProperty("send_timeout","3000"));
-            recvTimeout = Integer.parseInt(properties.getProperty("recv_timeout","3000"));
+            sendTimeout = Integer.parseInt(properties.getProperty("send_timeout","3"));
+            recvTimeout = Integer.parseInt(properties.getProperty("recv_timeout","3"));
         } catch (IOException e) {
             System.out.println("配置文件加载失败");
             e.printStackTrace();
@@ -63,7 +64,7 @@ public class Client {
      * @return String 文件的DfsID,与文件存储服务器地址拼接后可以直接通过http协议取文件
      *
      */
-    public String upload(int copCode, String itemId, String fileType, int fileOrder, String ext, byte[] fileContent){
+    public String upload(int copCode, String itemId, String fileType, int fileOrder, String ext, byte[] fileContent) throws MyException{
         UploadUpJson json = new UploadUpJson();
         json.setBodyLength(fileContent.length);
         json.setExtension(ext);
@@ -75,9 +76,12 @@ public class Client {
         System.out.println(Arrays.toString(send));
         boolean success = socket.send(send);
         if (!success){
-            return "上传失败";
+            throw new MyException("上传失败");
         }
         byte[] recv = socket.recv();
+        if (recv == null){
+            throw new MyException("接收数据超时");
+        }
         System.out.println(Arrays.toString(recv));
         try {
             int jsonSize = ByteArrayTool.bytesToShort(recv, 4);
@@ -85,7 +89,7 @@ public class Client {
             return resultJson;
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
-            return "接收到的数据编码错误";
+            throw new MyException("接收数据编码错误");
         }
     }
 
@@ -96,7 +100,7 @@ public class Client {
      * @return String[] String[1]存储包头中的json字符串,String[2]中储存包体中的json字符串
      *
      */
-    public String[] download(int copCode,String itemId){
+    public String[] download(int copCode,String itemId) throws MyException{
         String[] result = new String[2];
         DownloadUpJson json = new DownloadUpJson();
         json.setItemId(itemId);
@@ -106,9 +110,12 @@ public class Client {
         System.out.println(Arrays.toString(send));
         boolean success = socket.send(send);
         if (!success){
-            return new String[]{"下载失败",null};
+            throw new MyException("上传失败");
         }
         byte[] recv = socket.recv();
+        if (recv == null){
+            throw new MyException("接收数据超时");
+        }
         System.out.println(Arrays.toString(recv));
         try {
             int jsonSize = ByteArrayTool.bytesToShort(recv,4);
@@ -119,7 +126,7 @@ public class Client {
             return result;
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
-            return new String[]{"接收到的数据编码错误",null};
+            throw new MyException("接收数据编码错误");
         }
     }
 
@@ -129,8 +136,8 @@ public class Client {
     public void connect() {
         context = ZMQ.context(1);
         socket = context.socket(ZMQ.REQ);
-        socket.setSendTimeOut(sendTimeout);
-        socket.setReceiveTimeOut(recvTimeout);
+        socket.setSendTimeOut(sendTimeout*1000);
+        socket.setReceiveTimeOut(recvTimeout*1000);
         socket.connect("tcp://"+URL);
     }
 
