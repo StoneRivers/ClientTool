@@ -10,9 +10,7 @@ import com.jymf.dfs.tool.PacketTool;
 
 import org.zeromq.ZMQ;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.util.Arrays;
 import java.util.Properties;
 
@@ -36,14 +34,23 @@ public class Client {
     static{
         try {
             Properties properties = new Properties();
-            InputStream inputStream = Client.class.getResourceAsStream("/client.properties");
-            properties.load(inputStream);
+            String solrConfigPath = "./client.properties";
+            File file = new File(solrConfigPath);
+            System.out.println(file.getCanonicalPath());
+            InputStream in = new FileInputStream(solrConfigPath);
+            //InputStream in = Client.class.getResourceAsStream("/client.properties");
+            properties.load(in);
+
             URL = properties.getProperty("server");
+
+            System.out.println(URL);
             if (URL == null){
                 throw new MyException("URL不存在");
             }
             sendTimeout = Integer.parseInt(properties.getProperty("send_timeout","3"));
+            System.out.println(sendTimeout);
             recvTimeout = Integer.parseInt(properties.getProperty("recv_timeout","3"));
+            in.close();
         } catch (IOException e) {
             System.out.println("配置文件加载失败");
             e.printStackTrace();
@@ -64,8 +71,9 @@ public class Client {
      * @return String 文件的DfsID,与文件存储服务器地址拼接后可以直接通过http协议取文件
      *
      */
-    public String upload(int copCode, String itemId, String fileType, int fileOrder, String ext, byte[] fileContent) throws MyException{
+    public String upload(String userName,int copCode, String itemId, String fileType, int fileOrder, String ext, byte[] fileContent) throws MyException{
         UploadUpJson json = new UploadUpJson();
+        json.setUsername(userName);
         json.setBodyLength(fileContent.length);
         json.setExtension(ext);
         json.setFileOrder(fileOrder);
@@ -73,7 +81,6 @@ public class Client {
         json.setItemId(itemId);
         String jsonString = JsonTool.toJson(json);
         byte[] send = PacketTool.pack(copCode,jsonString,fileContent);
-        System.out.println(Arrays.toString(send));
         boolean success = socket.send(send);
         if (!success){
             throw new MyException("上传失败");
@@ -82,7 +89,7 @@ public class Client {
         if (recv == null){
             throw new MyException("接收数据超时");
         }
-        System.out.println(Arrays.toString(recv));
+        //System.out.println(Arrays.toString(recv));
         try {
             int jsonSize = ByteArrayTool.bytesToShort(recv, 4);
             String resultJson = new String(recv, 6, jsonSize, "utf-8");
@@ -100,14 +107,14 @@ public class Client {
      * @return String[] String[1]存储包头中的json字符串,String[2]中储存包体中的json字符串
      *
      */
-    public String[] download(int copCode,String itemId) throws MyException{
+    public String[] download(String userName,int copCode,String itemId) throws MyException{
         String[] result = new String[2];
         DownloadUpJson json = new DownloadUpJson();
+        json.setUsername(userName);
         json.setItemId(itemId);
         String jsonString = JsonTool.toJson(json);
 
         byte[] send = PacketTool.pack(copCode,jsonString,null);
-        System.out.println(Arrays.toString(send));
         boolean success = socket.send(send);
         if (!success){
             throw new MyException("上传失败");
@@ -116,7 +123,6 @@ public class Client {
         if (recv == null){
             throw new MyException("接收数据超时");
         }
-        System.out.println(Arrays.toString(recv));
         try {
             int jsonSize = ByteArrayTool.bytesToShort(recv,4);
             result[0]  = new String(recv,6,jsonSize,"utf-8");

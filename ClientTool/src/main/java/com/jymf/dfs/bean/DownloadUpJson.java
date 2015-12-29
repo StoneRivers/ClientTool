@@ -7,7 +7,17 @@ package com.jymf.dfs.bean;
  */
 public class DownloadUpJson {
 
+    private String username = null;
+
     private String itemId = null;
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
 
     public String getItemId() {
         return itemId;

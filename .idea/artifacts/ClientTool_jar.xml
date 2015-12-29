@@ -3,6 +3,8 @@
     <output-path>$PROJECT_DIR$/out/artifacts/ClientTool_jar</output-path>
     <root id="archive" name="ClientTool.jar">
       <element id="module-output" name="ClientTool" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/zeromq/jeromq/0.3.5/jeromq-0.3.5.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/google/code/gson/gson/2.5/gson-2.5.jar" path-in-jar="/" />
     </root>
   </artifact>
 </component>

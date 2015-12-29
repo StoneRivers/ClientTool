@@ -7,11 +7,20 @@ package com.jymf.dfs.bean;
  */
 public class UploadUpJson {
 
+    private String username = null;
     private String itemId = null;
     private String fileType = null;
     private int fileOrder = 0;
     private String extension = null;
     private int bodyLength = 0;
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
 
     public String getItemId() {
         return itemId;
